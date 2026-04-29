@@ -2,6 +2,8 @@ import probeMapSupport from 'examples/basic/probes/probe_map_support.njs';
 import probeAsyncGeneratorsSupport from 'examples/basic/probes/probe_async_generators_support.njs';
 import probeProxySupport from 'examples/basic/probes/probe_proxy_support.njs';
 import probeRuntimeCoreRendering from 'examples/basic/probes/probe_runtime_core_rendering.njs';
+import probeRuntimeMarkdownRendering from 'examples/basic/probes/probe_runtime_markdown_rendering.njs';
+import probeRuntimeMarkdownSafety from 'examples/basic/probes/probe_runtime_markdown_safety.njs';
 import probeRuntimeAttributeValidation from 'examples/basic/probes/probe_runtime_attribute_validation.njs';
 import probeRuntimeScriptHelpers from 'examples/basic/probes/probe_runtime_script_helpers.njs';
 import probeExamplePageRendering from 'examples/basic/probes/probe_example_page_rendering.njs';
@@ -11,6 +13,8 @@ var PROBES = [
     probeAsyncGeneratorsSupport,
     probeProxySupport,
     probeRuntimeCoreRendering,
+    probeRuntimeMarkdownRendering,
+    probeRuntimeMarkdownSafety,
     probeRuntimeAttributeValidation,
     probeRuntimeScriptHelpers,
     probeExamplePageRendering

@@ -18,6 +18,7 @@ This file is intentionally short. It is the repo-level source of truth for what 
 The MVP currently includes:
 
 - a reusable HTML runtime in `lib/runtime/`
+- a reusable Markdown companion runtime in `lib/runtime/markdown.njs`
 - an explicit HTML helper allowlist in `lib/runtime/tags.njs`
 - one generic example app in `examples/basic/`
 - one `js_content` render entrypoint
@@ -32,6 +33,7 @@ Canonical file layout:
 /README.md
 /LICENSE
 /lib/runtime/html.njs
+/lib/runtime/markdown.njs
 /lib/runtime/tags.njs
 /examples/basic/render.njs
 /examples/basic/views/Home.njs
@@ -92,6 +94,13 @@ The public runtime API should stay small and explicit:
 - `inlineScript(code, nonce)`
 - `inlineModule(code, nonce)`
 
+Optional Markdown companion contract:
+
+- `lib/runtime/markdown.njs`
+- `renderToString(node)` using the same AST shape as the HTML runtime
+- derive only a small metadata preamble for supported head tags
+- keep Markdown support opt-in and separate from the HTML runtime module
+
 The helper allowlist in `lib/runtime/tags.njs` is the canonical source of tag coverage.
 
 Scope boundaries:
@@ -109,6 +118,8 @@ The example should remain generic and installable:
 - canonical route: `/`
 - canonical example port: `8080`
 - full `<!DOCTYPE html>` document render
+- HTML as the default response shape
+- optional Markdown response for explicit `Accept: text/markdown` requests demonstrated in the example handler
 - request-local context created once in the handler and passed explicitly
 - no personal branding
 - no private business logic
@@ -124,7 +135,7 @@ Keep:
 
 - `examples/basic/validate-runtime.njs` as the summary entrypoint
 - focused probes under `examples/basic/probes/`
-- runtime validation for escaping, attribute failure behavior, and example render output
+- runtime validation for escaping, attribute failure behavior, markdown rendering behavior, and example render output
 - an example NGINX config that remains coherent with the README
 
 Target validation flow:
@@ -134,6 +145,8 @@ Target validation flow:
 3. validate the example `nginx.conf`
 4. smoke-test `/` on port `8080`
 5. confirm `Content-Type: text/html; charset=utf-8` and leading `<!DOCTYPE html>`
+6. smoke-test `/` with `Accept: text/markdown`
+7. confirm `Content-Type: text/markdown; charset=utf-8`, `Vary: Accept`, and markdown output with the small preamble
 
 ## Compatibility Baseline
 
@@ -159,6 +172,7 @@ It should continue to document:
 - installation via clone into `/etc/nginx/njs`
 - module loading and `js_path` setup
 - runtime API and helper coverage
+- the opt-in Markdown companion runtime and example negotiation path
 - validation workflow
 - intentional limitations and non-goals
 

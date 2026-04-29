@@ -99,9 +99,10 @@ This project explores what happens when those layers are intentionally removed.
 ## Feature Summary
 
 - Generic HTML runtime in [`lib/runtime/html.njs`](./lib/runtime/html.njs)
+- Companion Markdown runtime in [`lib/runtime/markdown.njs`](./lib/runtime/markdown.njs)
 - Explicit helper allowlist in [`lib/runtime/tags.njs`](./lib/runtime/tags.njs)
 - One example application rooted at `/`
-- `js_content` render entrypoint in [`examples/basic/render.njs`](./examples/basic/render.njs)
+- `js_content` render entrypoint in [`examples/basic/render.njs`](./examples/basic/render.njs) with explicit `Accept: text/markdown` negotiation
 - Minimal copy-pasteable Nginx config in [`examples/basic/nginx.conf`](./examples/basic/nginx.conf)
 - CLI-first runtime validation entrypoint in [`examples/basic/validate-runtime.njs`](./examples/basic/validate-runtime.njs)
 - Focused probe modules for runtime behavior and doubtful engine features
@@ -220,6 +221,8 @@ http {
         server_name _;
 
         location = / {
+            # HTML stays the default.
+            # The handler returns markdown for explicit Accept: text/markdown requests.
             js_content render.handle;
         }
     }
@@ -255,6 +258,7 @@ sudo nginx -p /etc/nginx -c /etc/nginx/njs/examples/basic/nginx.conf
 /README.md
 /LICENSE
 /lib/runtime/html.njs
+/lib/runtime/markdown.njs
 /lib/runtime/tags.njs
 /examples/basic/render.njs
 /examples/basic/views/Home.njs
@@ -292,6 +296,32 @@ Public runtime API:
 - `jsonLd(data)`
 - `inlineScript(code, nonce)`
 - `inlineModule(code, nonce)`
+
+Optional Markdown companion:
+
+```javascript
+import runtime from 'lib/runtime/html.njs';
+import markdown from 'lib/runtime/markdown.njs';
+
+var h = runtime.h;
+
+var documentNode = h.html(
+    h.head(
+        h.title('Hello from njs'),
+        h.meta({ name: 'description', content: 'Markdown from the same AST.' })
+    ),
+    h.body(
+        h.article(
+            h.h1('Hello from njs'),
+            h.p('The same render tree can also be served as markdown.')
+        )
+    )
+);
+
+var markdownText = markdown.renderToString(documentNode);
+```
+
+The Markdown companion uses the same AST shape as the HTML runtime. For the MVP it derives a small YAML-style preamble from `title` and `meta name="description"` when present, renders body content as markdown, omits unsupported subtrees, and keeps HTML as an explicit separate render path.
 
 ## Runtime Model
 
@@ -352,9 +382,9 @@ Expected output shape:
 ```text
 NJS runtime validation summary
 
-Passed: 7/7
-Failed: 0/7
-Required passed: 4/4
+Passed: 9/9
+Failed: 0/9
+Required passed: 6/6
 
 Final verdict: SAFE TO USE
 ```
@@ -365,9 +395,11 @@ The checked-in probes cover:
 - async generator syntax support
 - `Proxy` support
 - core runtime rendering behavior
+- markdown rendering from the same AST shape
+- markdown safety behavior for escaping, metadata, and unsupported subtrees
 - attribute validation and failure behavior
 - JSON-LD and inline script helper behavior
-- full example document rendering
+- full example document rendering for both HTML and markdown
 
 The first three probes are informational. The runtime does not depend on them.
 
@@ -397,6 +429,19 @@ Expected leading bytes:
 <!DOCTYPE html>
 ```
 
+For the markdown response path:
+
+```bash
+curl -i http://127.0.0.1:8080/ -H "Accept: text/markdown"
+```
+
+You should confirm:
+
+- the status is `200`
+- the response includes `Content-Type: text/markdown; charset=utf-8`
+- the response includes `Vary: Accept`
+- the body begins with YAML-style frontmatter and markdown content rather than an HTML document
+
 ## Example App Notes
 
 The example app is intentionally generic:
@@ -404,12 +449,15 @@ The example app is intentionally generic:
 - route: `/`
 - listen port: `8080`
 - one root view with a full HTML document
+- one explicit markdown response path for `Accept: text/markdown`
 - explicit request context creation in the handler
 - neutral example content
 - one inline script example
 - one neutral JSON-LD example
 
 Optional nonce handling is example-scoped only. If you expose an `example_nonce` variable in your own Nginx configuration, the inline script helper will render it as a normal `nonce` attribute. The starter does not generate CSP nonces for you.
+
+Markdown negotiation remains manual and example-scoped. The starter gives you the renderer and one worked example, but it does not automatically impose markdown negotiation or response headers on your own application.
 
 ## Security Model and Limitations
 
@@ -422,6 +470,8 @@ Security-aware behavior included in the MVP:
 - unsupported prop payloads fail fast
 - boolean attributes render explicitly
 - inline script helpers escape script-like text content
+- the Markdown companion treats `rawText(...)` as text and escapes it instead of preserving raw markup
+- the Markdown companion omits unsupported tags together with their subtrees instead of emitting raw HTML
 
 Intentional non-goals for this repository:
 
